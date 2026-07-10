@@ -48,11 +48,14 @@ create table if not exists public.bazaars (
   name        text not null,
   status      text not null default 'active',     -- active | closed
   return_date date,
+  amount_received numeric not null default 0,      -- total ₹ received for the whole bazaar (revenue), set at close
   opened_at   timestamptz not null default now(),
   closed_at   timestamptz
 );
 create index if not exists bazaars_user_idx   on public.bazaars(user_id);
 create index if not exists bazaars_vendor_idx on public.bazaars(vendor_id);
+-- Add amount_received to pre-existing installs:
+alter table public.bazaars add column if not exists amount_received numeric not null default 0;
 
 -- ------------------------------------------------------------
 --  BAZAAR ITEMS  (each product assigned to a bazaar)
@@ -200,15 +203,17 @@ $$;
 
 -- ============================================================
 --  RPC: close_bazaar
---  Records returns, moves unsold stock BACK into inventory,
---  computes qty_sold, captures the selling price per item, and
---  closes the bazaar. Revenue/profit are derived from sale_price
---  (selling) vs unit_price (wholesale) at report time.
---  p_returns = jsonb array of { item_id, qty_returned, sale_price }
+--  Records per-item returns, moves unsold stock BACK into
+--  inventory, computes qty_sold, stores the single total amount
+--  received for the whole bazaar (revenue), and closes it.
+--  Profit = amount_received − wholesale cost of goods sold,
+--  derived at report time.
+--  p_returns = jsonb array of { item_id, qty_returned }
 -- ============================================================
 create or replace function public.close_bazaar(
-  p_bazaar_id uuid,
-  p_returns   jsonb
+  p_bazaar_id       uuid,
+  p_returns         jsonb,
+  p_amount_received numeric default 0
 ) returns void
 language plpgsql
 security invoker
@@ -222,8 +227,7 @@ begin
   loop
     update public.bazaar_items bi
       set qty_returned = (v_ret->>'qty_returned')::numeric,
-          qty_sold     = greatest(bi.qty_assigned - (v_ret->>'qty_returned')::numeric, 0),
-          sale_price   = coalesce((v_ret->>'sale_price')::numeric, bi.sale_price)
+          qty_sold     = greatest(bi.qty_assigned - (v_ret->>'qty_returned')::numeric, 0)
       where bi.id = (v_ret->>'item_id')::uuid
         and bi.bazaar_id = p_bazaar_id;
 
@@ -236,7 +240,8 @@ begin
   end loop;
 
   update public.bazaars
-    set status = 'closed', closed_at = now()
+    set status = 'closed', closed_at = now(),
+        amount_received = coalesce(p_amount_received, 0)
     where id = p_bazaar_id and user_id = v_uid;
 end;
 $$;

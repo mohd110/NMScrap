@@ -18,23 +18,22 @@ export function lineValue(quantity, unitPrice) {
   return (Number(quantity) || 0) * (Number(unitPrice) || 0);
 }
 
-// Selling price captured for a bazaar item at close. Legacy items closed
-// before selling prices were captured fall back to the wholesale unit_price
-// (so their revenue equals cost and profit reads 0, rather than a false loss).
-export function salePriceOf(item) {
-  const sp = Number(item.sale_price) || 0;
-  return sp > 0 ? sp : (Number(item.unit_price) || 0);
+// Wholesale cost of the goods sold in a bazaar (qty_sold × unit_price).
+export function bazaarCost(items = []) {
+  return items.reduce((s, it) => s + (Number(it.qty_sold) || 0) * (Number(it.unit_price) || 0), 0);
 }
 
-// Revenue / cost / profit for a set of bazaar items, based on qty_sold.
-// Revenue uses the selling price; cost uses the wholesale unit_price.
-export function bazaarTotals(items = []) {
-  let revenue = 0, cost = 0;
-  for (const it of items) {
-    const sold = Number(it.qty_sold) || 0;
-    revenue += sold * salePriceOf(it);
-    cost += sold * (Number(it.unit_price) || 0);
-  }
+// Revenue / cost / profit for a whole bazaar.
+// Revenue = the single total amount received for the bazaar (set at close).
+// Cost    = wholesale cost of goods sold. Profit = revenue − cost.
+// Legacy bazaars closed before amounts were captured (amount_received = 0
+// with items sold) fall back to cost, so profit reads 0 not a false loss.
+export function bazaarTotals(bazaar = {}) {
+  const items = bazaar.items || [];
+  const cost = bazaarCost(items);
+  const received = Number(bazaar.amount_received) || 0;
+  const soldUnits = items.reduce((s, it) => s + (Number(it.qty_sold) || 0), 0);
+  const revenue = received > 0 || soldUnits === 0 ? received : cost;
   return { revenue, cost, profit: revenue - cost };
 }
 

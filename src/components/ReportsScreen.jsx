@@ -4,7 +4,7 @@ import Modal from './Modal';
 import BillReceipt from './BillReceipt';
 import { useData } from '../context/DataContext';
 import { useNav } from '../context/NavContext';
-import { inr, qty, lineValue, timeAgo, salePriceOf, bazaarTotals } from '../lib/format';
+import { inr, qty, lineValue, timeAgo, bazaarTotals } from '../lib/format';
 
 export default function ReportsScreen() {
   const { bazaars, vendors, sales, loading } = useData();
@@ -21,24 +21,24 @@ export default function ReportsScreen() {
 
   const vendorName = (id) => vendors.find((v) => v.id === id)?.name || 'Vendor';
 
-  // overall bazaar totals: revenue (selling) and profit (selling − wholesale)
+  // overall bazaar totals: revenue = total received, profit = received − wholesale cost
   const closedItems = closed.flatMap((b) => b.items);
-  const bazaarRevenue = closedItems.reduce((s, it) => s + lineValue(it.qty_sold, salePriceOf(it)), 0);
-  const bazaarProfit = closed.reduce((s, b) => s + bazaarTotals(b.items).profit, 0);
+  const bazaarRevenue = closed.reduce((s, b) => s + bazaarTotals(b).revenue, 0);
+  const bazaarProfit = closed.reduce((s, b) => s + bazaarTotals(b).profit, 0);
   const soldUnits = closedItems.reduce((s, it) => s + Number(it.qty_sold), 0);
 
-  // revenue-by-product leaderboard
+  // Bazaar revenue is a single lump sum per bazaar, so it can't be split by
+  // product. Rank products by UNITS sold instead.
   const byProduct = {};
   for (const b of closed) {
     for (const it of b.items) {
       const key = it.product_name;
-      byProduct[key] ||= { name: key, units: 0, value: 0, unit: it.unit };
+      byProduct[key] ||= { name: key, units: 0, unit: it.unit };
       byProduct[key].units += Number(it.qty_sold);
-      byProduct[key].value += lineValue(it.qty_sold, salePriceOf(it));
     }
   }
-  const leaderboard = Object.values(byProduct).sort((a, b) => b.value - a.value).slice(0, 6);
-  const maxVal = Math.max(1, ...leaderboard.map((l) => l.value));
+  const leaderboard = Object.values(byProduct).sort((a, b) => b.units - a.units).slice(0, 6);
+  const maxVal = Math.max(1, ...leaderboard.map((l) => l.units));
 
   return (
     <>
@@ -62,15 +62,15 @@ export default function ReportsScreen() {
 
           {leaderboard.length > 0 && (
             <div className="chart-card">
-              <div className="chart-card-title" style={{ marginBottom: 12 }}>Top Sold Products</div>
+              <div className="chart-card-title" style={{ marginBottom: 12 }}>Top Products by Units Sold</div>
               {leaderboard.map((l) => (
                 <div key={l.name} className="lb-row">
                   <div className="lb-head">
                     <span className="lb-name">{l.name}</span>
-                    <span className="lb-val">{inr(l.value)}</span>
+                    <span className="lb-val">{qty(l.units, l.unit)}</span>
                   </div>
-                  <div className="lb-track"><div className="lb-fill" style={{ width: `${(l.value / maxVal) * 100}%` }} /></div>
-                  <div className="lb-sub">{qty(l.units, l.unit)} sold</div>
+                  <div className="lb-track"><div className="lb-fill" style={{ width: `${(l.units / maxVal) * 100}%` }} /></div>
+                  <div className="lb-sub">sold across bazaars</div>
                 </div>
               ))}
             </div>
@@ -159,24 +159,24 @@ export default function ReportsScreen() {
                   {isOpen && (
                     <div className="report-lines">
                       <div className="report-line report-line-head">
-                        <span>Product</span><span>Sold</span><span>Rate</span><span>Revenue</span>
+                        <span>Product</span><span>Sold</span><span>Returned</span><span>Cost</span>
                       </div>
                       {b.items.map((it) => (
                         <div key={it.id} className="report-line">
                           <span>{it.product_name}</span>
                           <span>{qty(it.qty_sold)}</span>
-                          <span>{inr(salePriceOf(it))}</span>
-                          <span>{inr(lineValue(it.qty_sold, salePriceOf(it)))}</span>
+                          <span>{qty(it.qty_returned)}</span>
+                          <span>{inr(lineValue(it.qty_sold, it.unit_price))}</span>
                         </div>
                       ))}
                       <div className="report-line report-line-total">
-                        <span>Revenue</span>
+                        <span>Amount received</span>
                         <span>{qty(b.items.reduce((s, it) => s + Number(it.qty_sold), 0))}</span>
                         <span>{qty(retUnits)} ret</span>
                         <span>{inr(totals.revenue)}</span>
                       </div>
                       <div className="report-line" style={{ color: 'var(--text-muted)' }}>
-                        <span>Wholesale cost</span><span /><span /><span>− {inr(totals.cost)}</span>
+                        <span>Wholesale cost of sold</span><span /><span /><span>− {inr(totals.cost)}</span>
                       </div>
                       <div className="report-line report-line-total">
                         <span>Profit</span><span /><span />

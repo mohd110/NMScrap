@@ -33,9 +33,9 @@ export default function WednesdayLedgerScreen() {
 
   const latestActive = vendorBazaars.find((b) => b.status === 'active');
 
-  const handleClose = async (bazaar, returns) => {
+  const handleClose = async (bazaar, returns, amountReceived) => {
     try {
-      await closeBazaar(bazaar.id, returns);
+      await closeBazaar(bazaar.id, returns, amountReceived);
       notify('Bazaar closed · unsold returned to stock');
       setReturning(null);
     } catch (e) {
@@ -115,7 +115,7 @@ export default function WednesdayLedgerScreen() {
             <div className="assignment-history-list">
               {vendorBazaars.map((b) => {
                 const assignedVal = b.items.reduce((s, it) => s + lineValue(it.qty_assigned, it.unit_price), 0);
-                const revenue = bazaarTotals(b.items).revenue;
+                const revenue = bazaarTotals(b).revenue;
                 const totalUnits = b.items.reduce((s, it) => s + Number(it.qty_assigned), 0);
                 return (
                   <div key={b.id} className="history-card">
@@ -159,7 +159,7 @@ export default function WednesdayLedgerScreen() {
         <RecordReturnsModal
           bazaar={returning}
           onClose={() => setReturning(null)}
-          onConfirm={(returns) => handleClose(returning, returns)}
+          onConfirm={(returns, amountReceived) => handleClose(returning, returns, amountReceived)}
         />
       )}
     </>
@@ -171,48 +171,44 @@ function RecordReturnsModal({ bazaar, onClose, onConfirm }) {
     bazaar.items.map((it) => ({
       item_id: it.id, name: it.product_name, unit: it.unit,
       assigned: Number(it.qty_assigned),
-      cost: Number(it.unit_price),                               // wholesale
+      cost: Number(it.unit_price),           // wholesale
       qty_returned: '',
-      sale_price: it.unit_price != null ? String(it.unit_price) : '', // selling, editable
     }))
   );
+  const [amountReceived, setAmountReceived] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const setField = (id, key, v) =>
-    setReturns((list) => list.map((r) => (r.item_id === id ? { ...r, [key]: v } : r)));
+  const setRet = (id, v) => setReturns((list) => list.map((r) => (r.item_id === id ? { ...r, qty_returned: v } : r)));
 
   const soldUnits = returns.reduce((s, r) => s + Math.max(0, r.assigned - (Number(r.qty_returned) || 0)), 0);
-  const revenue = returns.reduce((s, r) => {
-    const sold = Math.max(0, r.assigned - (Number(r.qty_returned) || 0));
-    return s + sold * (Number(r.sale_price) || 0);
-  }, 0);
+  // Wholesale cost of the goods that sold.
   const cost = returns.reduce((s, r) => {
     const sold = Math.max(0, r.assigned - (Number(r.qty_returned) || 0));
     return s + sold * r.cost;
   }, 0);
+  const revenue = Number(amountReceived) || 0;
   const profit = revenue - cost;
 
   const invalid = returns.some((r) => (Number(r.qty_returned) || 0) > r.assigned);
 
   return (
     <Modal
-      title="Record Returns"
+      title="Settle Bazaar"
       onClose={onClose}
       footer={
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div className="review-total-row"><span>Revenue · {qty(soldUnits)} sold</span><b>{inr(revenue)}</b></div>
+          <div className="review-total-row"><span>Amount received</span><b>{inr(revenue)}</b></div>
           <div className="review-total-row no-print" style={{ fontSize: 13 }}>
-            <span>Profit (internal)</span>
+            <span>Profit (received − cost of {qty(soldUnits)} sold)</span>
             <b style={{ color: profit < 0 ? 'var(--danger)' : 'var(--primary)' }}>{inr(profit)}</b>
           </div>
           <button className="btn-confirm" disabled={busy || invalid}
                   onClick={async () => {
                     setBusy(true);
-                    await onConfirm(returns.map((r) => ({
-                      item_id: r.item_id,
-                      qty_returned: Number(r.qty_returned) || 0,
-                      sale_price: Number(r.sale_price) || 0,
-                    })));
+                    await onConfirm(
+                      returns.map((r) => ({ item_id: r.item_id, qty_returned: Number(r.qty_returned) || 0 })),
+                      revenue
+                    );
                     setBusy(false);
                   }}>
             {busy ? 'Closing…' : invalid ? 'Returns exceed assigned' : '✓ Close Bazaar & Return Stock'}
@@ -221,15 +217,14 @@ function RecordReturnsModal({ bazaar, onClose, onConfirm }) {
       }
     >
       <div className="review-hint">
-        Enter how much came back <b>unsold</b> and the price each item <b>sold at</b>.
-        The rest is recorded as sold, unsold stock returns to inventory, and profit is
-        selling price minus your wholesale cost.
+        Enter how much of each item came back <b>unsold</b> — the rest is recorded as
+        sold and returned stock goes back to inventory. Then enter the <b>total amount
+        received</b> from this bazaar.
       </div>
+
       {returns.map((r) => {
         const sold = Math.max(0, r.assigned - (Number(r.qty_returned) || 0));
         const over = (Number(r.qty_returned) || 0) > r.assigned;
-        const lineRevenue = sold * (Number(r.sale_price) || 0);
-        const lineProfit = lineRevenue - sold * r.cost;
         return (
           <div key={r.item_id} className="review-item">
             <div className="review-item-head">
@@ -244,34 +239,26 @@ function RecordReturnsModal({ bazaar, onClose, onConfirm }) {
                 <span>Returned</span>
                 <input type="number" value={r.qty_returned} placeholder="0"
                        style={over ? { borderColor: 'var(--danger)' } : undefined}
-                       onChange={(e) => setField(r.item_id, 'qty_returned', e.target.value)} />
+                       onChange={(e) => setRet(r.item_id, e.target.value)} />
               </label>
               <label className="review-field">
                 <span>Sold</span>
                 <input value={qty(sold, r.unit)} disabled />
               </label>
             </div>
-            <div className="review-item-grid" style={{ marginTop: 6 }}>
-              <label className="review-field">
-                <span>Wholesale ₹/{r.unit}</span>
-                <input value={inr(r.cost)} disabled />
-              </label>
-              <label className="review-field">
-                <span>Sold ₹/{r.unit}</span>
-                <input type="number" value={r.sale_price} placeholder="0"
-                       onChange={(e) => setField(r.item_id, 'sale_price', e.target.value)} />
-              </label>
-              <label className="review-field">
-                <span>Revenue</span>
-                <input value={inr(lineRevenue)} disabled />
-              </label>
-            </div>
-            <div className="review-line-value no-print">
-              Profit: <b style={{ color: lineProfit < 0 ? 'var(--danger)' : 'var(--primary)' }}>{inr(lineProfit)}</b>
-            </div>
           </div>
         );
       })}
+
+      <div className="settle-amount">
+        <div className="form-label">Total Amount Received (₹)</div>
+        <input className="form-input" style={{ padding: '0 14px' }} type="number"
+               value={amountReceived} placeholder="e.g. 45000"
+               onChange={(e) => setAmountReceived(e.target.value)} autoFocus />
+        <div className="settle-amount-hint no-print">
+          Cost of goods sold: {inr(cost)} · this is what you paid wholesale for the {qty(soldUnits)} sold.
+        </div>
+      </div>
     </Modal>
   );
 }

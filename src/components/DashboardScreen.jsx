@@ -14,7 +14,7 @@ export default function DashboardScreen() {
   const totalUnits = products.reduce((s, p) => s + (Number(p.quantity) || 0), 0);
 
   const closed = bazaars.filter((b) => b.status === 'closed');
-  const soldValue = closed.reduce((s, b) => s + bazaarTotals(b.items).revenue, 0);
+  const soldValue = closed.reduce((s, b) => s + bazaarTotals(b).revenue, 0);
 
   const lowStock = products
     .filter((p) => Number(p.min_stock) > 0 && Number(p.quantity) <= Number(p.min_stock))
@@ -124,7 +124,7 @@ export default function DashboardScreen() {
 function buildChart(closed) {
   const recent = [...closed].reverse().slice(-6);
   const values = recent.map((b) => ({
-    value: bazaarTotals(b.items).revenue,
+    value: bazaarTotals(b).revenue,
     label: (b.name || 'Bazaar').slice(0, 3),
   }));
   while (values.length < 6) values.unshift({ value: 0, label: '·' });

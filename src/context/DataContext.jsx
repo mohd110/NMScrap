@@ -165,11 +165,12 @@ export function DataProvider({ children }) {
     return data; // new bazaar id
   };
 
-  // returns: [{ item_id, qty_returned }]
-  const closeBazaar = async (bazaarId, returns) => {
+  // returns: [{ item_id, qty_returned }] · amountReceived = total ₹ for the bazaar
+  const closeBazaar = async (bazaarId, returns, amountReceived = 0) => {
     const { error } = await supabase.rpc('close_bazaar', {
       p_bazaar_id: bazaarId,
       p_returns: returns,
+      p_amount_received: Number(amountReceived) || 0,
     });
     if (error) throw error;
     await refresh();

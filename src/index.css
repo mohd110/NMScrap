@@ -2091,6 +2091,14 @@ body {
 .receipt-actions .action-btn { flex: 1; }
 .receipt-done { flex-basis: 100%; }
 
+/* Total-amount-received field in the Settle Bazaar modal */
+.settle-amount {
+  margin-top: 8px; padding: 12px; border-radius: var(--radius-md);
+  background: var(--primary-bg); border: 1px solid var(--border);
+}
+.settle-amount .form-input { background: #fff; }
+.settle-amount-hint { font-size: 11px; color: var(--text-secondary); margin-top: 8px; }
+
 /* When printing, show only the receipt (no app chrome, no profit) */
 @media print {
   body * { visibility: hidden !important; }
