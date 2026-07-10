@@ -55,8 +55,8 @@ export function BackHeader({ title, onBack, rightLabel }) {
   );
 }
 
-// Bottom Navigation
-export function BottomNav() {
+// Bottom Navigation (becomes a left sidebar on desktop)
+export function BottomNav({ className = '' }) {
   const { screen, goTab } = useNav();
   const items = [
     { id: 'dashboard', label: 'Dashboard', icon: '⊞' },
@@ -66,7 +66,8 @@ export function BottomNav() {
   ];
 
   return (
-    <div className="bottom-nav">
+    <div className={`bottom-nav ${className}`.trim()}>
+      <div className="nav-brand">🔩 NM Scrap</div>
       {items.map((item) => (
         <div
           key={item.id}

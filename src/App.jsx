@@ -34,12 +34,14 @@ function AppShell() {
   const showTabBar = TAB_SCREENS.includes(screen);
 
   return (
-    <div className="phone-frame">
+    <div className="phone-frame phone-frame--app">
       <StatusBar />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className="app-main">
         {renderScreen(screen)}
       </div>
-      {showTabBar && <BottomNav />}
+      {/* Always rendered so it can become a sidebar on desktop; hidden on
+          mobile sub-screens via the nav-when-tab-only class. */}
+      <BottomNav className={showTabBar ? '' : 'nav-when-tab-only'} />
     </div>
   );
 }
@@ -55,11 +57,11 @@ function Root() {
   }, []);
 
   if (!booted || loading) {
-    return <div className="phone-frame"><SplashScreen /></div>;
+    return <div className="phone-frame phone-frame--auth"><SplashScreen /></div>;
   }
 
   if (!session) {
-    return <div className="phone-frame"><LoginScreen /></div>;
+    return <div className="phone-frame phone-frame--auth"><LoginScreen /></div>;
   }
 
   return (

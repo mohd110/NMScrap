@@ -120,6 +120,13 @@ body {
 }
 .screen-content::-webkit-scrollbar { display: none; }
 
+/* Main content column (fills the frame under the status bar) */
+.app-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+/* Sidebar brand — hidden on mobile, revealed as a sidebar header on desktop */
+.nav-brand { display: none; }
+/* Nav is present in the DOM but hidden on mobile sub-screens */
+.bottom-nav.nav-when-tab-only { display: none; }
+
 /* Bottom Navigation */
 .bottom-nav {
   height: var(--nav-h);
@@ -2109,4 +2116,103 @@ body {
   }
   .no-print { display: none !important; }
   .phone-frame { box-shadow: none !important; border: none !important; }
+}
+
+/* ============================================
+   DESKTOP VIEW  (>= 1024px)
+   The signed-in app becomes a full-window layout with a left
+   sidebar; login/splash (.phone-frame--auth) stay a centered card.
+   ============================================ */
+@media (min-width: 1024px) {
+  .phone-frame--app {
+    width: 100%;
+    height: 100vh;
+    max-width: none;
+    border-radius: 0;
+    box-shadow: none;
+    flex-direction: row;
+  }
+
+  /* The fake mobile status bar makes no sense on desktop */
+  .phone-frame--app .status-bar { display: none; }
+
+  /* Bottom nav -> left sidebar */
+  .phone-frame--app .bottom-nav {
+    order: -1;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    width: 236px;
+    height: 100vh;
+    gap: 6px;
+    padding: 22px 14px;
+    border-top: none;
+    border-right: 1px solid var(--border);
+  }
+  .phone-frame--app .bottom-nav.nav-when-tab-only { display: flex; } /* always show on desktop */
+
+  .phone-frame--app .nav-brand {
+    display: block;
+    font-size: 19px;
+    font-weight: 800;
+    color: var(--primary);
+    padding: 6px 14px 22px;
+    letter-spacing: -0.3px;
+  }
+
+  .phone-frame--app .nav-item,
+  .phone-frame--app .nav-item.active {
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 14px;
+    flex: initial;
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+  }
+  .phone-frame--app .nav-item:not(.active):hover { background: var(--bg-section); }
+  .phone-frame--app .nav-item .nav-icon,
+  .phone-frame--app .nav-item.active .nav-icon { font-size: 20px; }
+  .phone-frame--app .nav-item .nav-label,
+  .phone-frame--app .nav-item.active .nav-label { font-size: 14px; font-weight: 600; }
+
+  /* Main column */
+  .phone-frame--app .app-main { height: 100vh; }
+  .phone-frame--app .app-header { height: 64px; padding: 0 32px; }
+
+  /* Centre the content at a comfortable reading width */
+  .phone-frame--app .screen-content > * {
+    max-width: 940px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-top: 22px;
+    padding-bottom: 40px;
+  }
+  .phone-frame--app .sell-summary > * { max-width: 940px; margin: 0 auto; }
+
+  /* Interactive polish */
+  .phone-frame--app .stat-card,
+  .phone-frame--app .inv-card,
+  .phone-frame--app .history-card { transition: box-shadow 0.15s ease, transform 0.15s ease; }
+  .phone-frame--app .inv-card:hover,
+  .phone-frame--app .history-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+
+  /* Modals: centred dialogs instead of bottom sheets */
+  .phone-frame--app .modal-overlay { align-items: center; justify-content: center; }
+  .phone-frame--app .modal-sheet {
+    width: 540px;
+    max-width: 92%;
+    max-height: 86vh;
+    border-radius: var(--radius-lg);
+    animation: fadeIn 0.2s ease;
+  }
+
+  /* Toast sits above the content, centred in the main area */
+  .phone-frame--app .toast { bottom: 32px; }
+}
+
+/* Roomier still on very wide screens */
+@media (min-width: 1440px) {
+  .phone-frame--app .screen-content > * { max-width: 1040px; }
 }
