@@ -68,10 +68,13 @@ create table if not exists public.bazaar_items (
   qty_assigned  numeric not null default 0,
   qty_returned  numeric not null default 0,
   qty_sold      numeric not null default 0,
-  unit_price    numeric not null default 0,
+  unit_price    numeric not null default 0,   -- WHOLESALE / cost snapshot at assign time
+  sale_price    numeric not null default 0,   -- actual selling price, captured at close
   created_at    timestamptz not null default now()
 );
 create index if not exists bazaar_items_bazaar_idx on public.bazaar_items(bazaar_id);
+-- Add sale_price to pre-existing installs (create-table-if-not-exists won't):
+alter table public.bazaar_items add column if not exists sale_price numeric not null default 0;
 
 -- ------------------------------------------------------------
 --  BILLS  (scanned printed / handwritten bills)
@@ -198,8 +201,10 @@ $$;
 -- ============================================================
 --  RPC: close_bazaar
 --  Records returns, moves unsold stock BACK into inventory,
---  computes qty_sold, and closes the bazaar.
---  p_returns = jsonb array of { item_id, qty_returned }
+--  computes qty_sold, captures the selling price per item, and
+--  closes the bazaar. Revenue/profit are derived from sale_price
+--  (selling) vs unit_price (wholesale) at report time.
+--  p_returns = jsonb array of { item_id, qty_returned, sale_price }
 -- ============================================================
 create or replace function public.close_bazaar(
   p_bazaar_id uuid,
@@ -217,7 +222,8 @@ begin
   loop
     update public.bazaar_items bi
       set qty_returned = (v_ret->>'qty_returned')::numeric,
-          qty_sold     = greatest(bi.qty_assigned - (v_ret->>'qty_returned')::numeric, 0)
+          qty_sold     = greatest(bi.qty_assigned - (v_ret->>'qty_returned')::numeric, 0),
+          sale_price   = coalesce((v_ret->>'sale_price')::numeric, bi.sale_price)
       where bi.id = (v_ret->>'item_id')::uuid
         and bi.bazaar_id = p_bazaar_id;
 

@@ -1,7 +1,7 @@
 import { AppHeader } from './Shared';
 import { useData } from '../context/DataContext';
 import { useNav } from '../context/NavContext';
-import { inr, qty, lineValue } from '../lib/format';
+import { inr, qty, lineValue, bazaarTotals } from '../lib/format';
 
 export default function DashboardScreen() {
   const { products, bazaars, sales, loading } = useData();
@@ -14,10 +14,7 @@ export default function DashboardScreen() {
   const totalUnits = products.reduce((s, p) => s + (Number(p.quantity) || 0), 0);
 
   const closed = bazaars.filter((b) => b.status === 'closed');
-  const soldValue = closed.reduce(
-    (s, b) => s + b.items.reduce((si, it) => si + lineValue(it.qty_sold, it.unit_price), 0),
-    0
-  );
+  const soldValue = closed.reduce((s, b) => s + bazaarTotals(b.items).revenue, 0);
 
   const lowStock = products
     .filter((p) => Number(p.min_stock) > 0 && Number(p.quantity) <= Number(p.min_stock))
@@ -127,7 +124,7 @@ export default function DashboardScreen() {
 function buildChart(closed) {
   const recent = [...closed].reverse().slice(-6);
   const values = recent.map((b) => ({
-    value: b.items.reduce((s, it) => s + lineValue(it.qty_sold, it.unit_price), 0),
+    value: bazaarTotals(b.items).revenue,
     label: (b.name || 'Bazaar').slice(0, 3),
   }));
   while (values.length < 6) values.unshift({ value: 0, label: '·' });

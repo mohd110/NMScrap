@@ -18,6 +18,26 @@ export function lineValue(quantity, unitPrice) {
   return (Number(quantity) || 0) * (Number(unitPrice) || 0);
 }
 
+// Selling price captured for a bazaar item at close. Legacy items closed
+// before selling prices were captured fall back to the wholesale unit_price
+// (so their revenue equals cost and profit reads 0, rather than a false loss).
+export function salePriceOf(item) {
+  const sp = Number(item.sale_price) || 0;
+  return sp > 0 ? sp : (Number(item.unit_price) || 0);
+}
+
+// Revenue / cost / profit for a set of bazaar items, based on qty_sold.
+// Revenue uses the selling price; cost uses the wholesale unit_price.
+export function bazaarTotals(items = []) {
+  let revenue = 0, cost = 0;
+  for (const it of items) {
+    const sold = Number(it.qty_sold) || 0;
+    revenue += sold * salePriceOf(it);
+    cost += sold * (Number(it.unit_price) || 0);
+  }
+  return { revenue, cost, profit: revenue - cost };
+}
+
 // Relative "time ago" for timestamps
 export function timeAgo(ts) {
   if (!ts) return '';
