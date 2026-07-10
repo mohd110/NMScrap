@@ -4,8 +4,10 @@ import { useNav } from '../context/NavContext';
 import { inr, qty, lineValue } from '../lib/format';
 
 export default function DashboardScreen() {
-  const { products, bazaars, loading } = useData();
+  const { products, bazaars, sales, loading } = useData();
   const { navigate, goTab } = useNav();
+
+  const salesRevenue = sales.reduce((s, sale) => s + (Number(sale.total) || 0), 0);
 
   // ---- derived stats ----
   const inventoryValue = products.reduce((s, p) => s + lineValue(p.quantity, p.unit_price), 0);
@@ -48,10 +50,17 @@ export default function DashboardScreen() {
             </div>
           </div>
 
-          <div className="stat-card">
-            <div className="stat-label">Inventory Value</div>
-            <div className="stat-value">{loading ? '—' : inr(inventoryValue)}</div>
-            <div className="stat-change">{products.length} product line{products.length !== 1 ? 's' : ''}</div>
+          <div className="stats-row">
+            <div className="stat-card">
+              <div className="stat-label">Inventory Value</div>
+              <div className="stat-value">{loading ? '—' : inr(inventoryValue)}</div>
+              <div className="stat-change">{products.length} product line{products.length !== 1 ? 's' : ''}</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-label">Direct Sales</div>
+              <div className="stat-value green">{loading ? '—' : inr(salesRevenue)}</div>
+              <div className="stat-change">{sales.length} bill{sales.length !== 1 ? 's' : ''}</div>
+            </div>
           </div>
 
           <div className="chart-card">
@@ -78,6 +87,10 @@ export default function DashboardScreen() {
               <span className="btn-icon">＋</span> Add Product
             </button>
           </div>
+
+          <button id="btn-new-sale" className="sale-cta" onClick={() => navigate('sell')}>
+            🧾 New Sale / Generate Bill
+          </button>
 
           <div>
             <div className="section-header">

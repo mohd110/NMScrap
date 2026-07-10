@@ -1971,3 +1971,134 @@ body {
 
 /* Disabled buttons */
 .btn-confirm:disabled, .btn-login:disabled, .btn-record-return:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ============================================
+   DIRECT SALES — cart, summary, bill receipt
+   ============================================ */
+
+/* Prominent "New Sale" call-to-action button */
+.sale-cta {
+  width: 100%;
+  margin: 4px 0 4px;
+  padding: 14px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+.sale-cta:active { background: var(--primary-dark); transform: translateY(1px); }
+
+/* Per-product sell button on inventory cards */
+.inv-card-actions { display: flex; gap: 6px; }
+.inv-sell-btn, .inv-del-btn {
+  border: none; background: var(--bg-section); border-radius: var(--radius-sm);
+  padding: 5px 8px; font-size: 14px; cursor: pointer; line-height: 1;
+}
+.inv-sell-btn:active { background: var(--primary-bg); }
+
+/* ---- Sell screen ---- */
+.sell-screen { padding-bottom: 8px; }
+.sell-picker {
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  margin-top: 8px; overflow: hidden; background: var(--bg-card);
+}
+.sell-pick-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px; border-bottom: 1px solid var(--border-light); cursor: pointer;
+}
+.sell-pick-row:last-child { border-bottom: none; }
+.sell-pick-row:active { background: var(--primary-bg); }
+.sell-pick-name { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.sell-pick-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.sell-pick-add { font-size: 20px; color: var(--primary); font-weight: 700; }
+
+.sell-lines { display: flex; flex-direction: column; gap: 10px; }
+.sell-line {
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  padding: 12px; background: var(--bg-card);
+}
+.sell-line-top { display: flex; align-items: center; justify-content: space-between; }
+.sell-line-name { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.sell-line-inputs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 8px; }
+.sell-field { display: flex; flex-direction: column; gap: 4px; }
+.sell-field > span { font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; color: var(--text-muted); font-weight: 700; }
+.sell-field .form-input { height: 40px; padding: 0 10px; font-size: 14px; }
+.sell-line-amt {
+  height: 40px; display: flex; align-items: center; padding: 0 10px;
+  font-weight: 700; color: var(--primary); font-size: 14px;
+  background: var(--bg-section); border-radius: var(--radius-sm);
+}
+.sell-line-hint { font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+.sell-warn { color: var(--danger); font-weight: 600; }
+
+/* Payment mode toggle */
+.pay-toggle { display: flex; gap: 8px; }
+.pay-opt {
+  flex: 1; padding: 10px; border: 1px solid var(--border); background: var(--bg-card);
+  border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
+  color: var(--text-secondary); cursor: pointer;
+}
+.pay-opt.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* Sticky sale summary */
+.sell-summary {
+  border-top: 1px solid var(--border); background: var(--bg-card);
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+}
+.sell-summary-figures { display: flex; justify-content: space-between; margin-bottom: 10px; }
+.sell-sum-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); font-weight: 700; }
+.sell-sum-total { font-size: 22px; font-weight: 800; color: var(--text-primary); }
+.sell-sum-profit { text-align: right; }
+.sell-sum-gain { font-size: 18px; font-weight: 800; color: var(--primary); }
+.sell-sum-loss { font-size: 18px; font-weight: 800; color: var(--danger); }
+
+/* ---- Printable bill receipt ---- */
+.sale-receipt-wrap { display: flex; flex-direction: column; gap: 14px; }
+.sale-receipt {
+  background: #fff; border: 1px solid var(--border); border-radius: var(--radius-md);
+  padding: 18px 16px; box-shadow: var(--shadow-sm);
+}
+.receipt-brand { text-align: center; font-size: 18px; font-weight: 800; color: var(--text-dark); }
+.receipt-sub { text-align: center; font-size: 11px; color: var(--text-muted); margin-bottom: 12px; }
+.receipt-meta {
+  display: flex; justify-content: space-between; font-size: 12px;
+  color: var(--text-secondary); padding: 3px 0;
+}
+.receipt-lines { margin: 12px 0; border-top: 1px dashed var(--border); padding-top: 8px; }
+.receipt-line { display: grid; grid-template-columns: 2fr 1fr 1fr 1.2fr; gap: 6px; font-size: 12px; padding: 5px 0; color: var(--text-secondary); }
+.receipt-line span:not(:first-child) { text-align: right; }
+.receipt-line-head { font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); font-weight: 700; }
+.receipt-line-total {
+  border-top: 1px dashed var(--border); margin-top: 4px; padding-top: 8px;
+  font-weight: 800; color: var(--text-primary); font-size: 14px;
+}
+.receipt-foot {
+  display: flex; justify-content: space-between; font-size: 12px;
+  color: var(--text-secondary); border-top: 1px dashed var(--border); padding-top: 8px;
+}
+.receipt-thanks { text-align: center; font-size: 11px; color: var(--text-muted); margin-top: 10px; }
+.receipt-profit {
+  margin-top: 12px; padding: 8px 10px; border-radius: var(--radius-sm);
+  background: var(--primary-bg); color: var(--primary-dark);
+  font-size: 12px; text-align: center;
+}
+.receipt-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.receipt-actions .action-btn { flex: 1; }
+.receipt-done { flex-basis: 100%; }
+
+/* When printing, show only the receipt (no app chrome, no profit) */
+@media print {
+  body * { visibility: hidden !important; }
+  .print-area, .print-area * { visibility: visible !important; }
+  .print-area {
+    position: absolute; left: 0; top: 0; width: 100%;
+    border: none; box-shadow: none; padding: 0;
+  }
+  .no-print { display: none !important; }
+  .phone-frame { box-shadow: none !important; border: none !important; }
+}

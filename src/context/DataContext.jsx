@@ -9,6 +9,7 @@ export function DataProvider({ children }) {
   const [products, setProducts] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [bazaars, setBazaars] = useState([]);       // includes .items[]
+  const [sales, setSales] = useState([]);           // direct sales, includes .items[]
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -18,22 +19,29 @@ export function DataProvider({ children }) {
     setLoading(true);
     setError(null);
     try {
-      const [pRes, vRes, bRes, biRes] = await Promise.all([
+      const [pRes, vRes, bRes, biRes, sRes, siRes] = await Promise.all([
         supabase.from('products').select('*').order('created_at', { ascending: false }),
         supabase.from('vendors').select('*').order('created_at', { ascending: false }),
         supabase.from('bazaars').select('*').order('opened_at', { ascending: false }),
         supabase.from('bazaar_items').select('*'),
+        supabase.from('sales').select('*').order('created_at', { ascending: false }),
+        supabase.from('sale_items').select('*'),
       ]);
-      const firstErr = pRes.error || vRes.error || bRes.error || biRes.error;
+      const firstErr = pRes.error || vRes.error || bRes.error || biRes.error || sRes.error || siRes.error;
       if (firstErr) throw firstErr;
 
       const itemsByBazaar = {};
       for (const it of biRes.data || []) {
         (itemsByBazaar[it.bazaar_id] ||= []).push(it);
       }
+      const itemsBySale = {};
+      for (const it of siRes.data || []) {
+        (itemsBySale[it.sale_id] ||= []).push(it);
+      }
       setProducts(pRes.data || []);
       setVendors(vRes.data || []);
       setBazaars((bRes.data || []).map((b) => ({ ...b, items: itemsByBazaar[b.id] || [] })));
+      setSales((sRes.data || []).map((s) => ({ ...s, items: itemsBySale[s.id] || [] })));
     } catch (e) {
       setError(e.message || String(e));
     } finally {
@@ -44,7 +52,7 @@ export function DataProvider({ children }) {
   useEffect(() => {
     if (user) refresh();
     else {
-      setProducts([]); setVendors([]); setBazaars([]); setLoading(false);
+      setProducts([]); setVendors([]); setBazaars([]); setSales([]); setLoading(false);
     }
   }, [user, refresh]);
 
@@ -167,13 +175,35 @@ export function DataProvider({ children }) {
     await refresh();
   };
 
+  // ================= DIRECT SALES =================
+  // items: [{ product_id, product_name, sku, unit, quantity, wholesale_price, sale_price }]
+  // Returns the full bill (with .items) so the receipt can be shown immediately.
+  const recordSale = async ({ buyerName, buyerPhone, paymentMode, note, items }) => {
+    const { data: saleId, error } = await supabase.rpc('record_sale', {
+      p_buyer_name: buyerName || null,
+      p_buyer_phone: buyerPhone || null,
+      p_payment_mode: paymentMode || 'cash',
+      p_note: note || null,
+      p_items: items,
+    });
+    if (error) throw error;
+
+    const [saleRes, itemsRes] = await Promise.all([
+      supabase.from('sales').select('*').eq('id', saleId).single(),
+      supabase.from('sale_items').select('*').eq('sale_id', saleId),
+    ]);
+    if (saleRes.error) throw saleRes.error;
+    await refresh();
+    return { ...saleRes.data, items: itemsRes.data || [] };
+  };
+
   return (
     <DataContext.Provider
       value={{
-        products, vendors, bazaars, loading, error, refresh,
+        products, vendors, bazaars, sales, loading, error, refresh,
         addProduct, updateProduct, deleteProduct, importBillItems,
         addVendor, deleteVendor,
-        assignInventory, closeBazaar,
+        assignInventory, closeBazaar, recordSale,
       }}
     >
       {children}

@@ -1,13 +1,20 @@
 import { useState } from 'react';
 import { AppHeader } from './Shared';
+import Modal from './Modal';
+import BillReceipt from './BillReceipt';
 import { useData } from '../context/DataContext';
 import { useNav } from '../context/NavContext';
 import { inr, qty, lineValue, timeAgo } from '../lib/format';
 
 export default function ReportsScreen() {
-  const { bazaars, vendors, loading } = useData();
+  const { bazaars, vendors, sales, loading } = useData();
   const { params } = useNav();
   const [open, setOpen] = useState(params.bazaarId || null);
+  const [viewBill, setViewBill] = useState(null);
+
+  // ---- direct sales totals ----
+  const salesRevenue = sales.reduce((s, x) => s + (Number(x.total) || 0), 0);
+  const salesProfit = sales.reduce((s, x) => s + (Number(x.profit) || 0), 0);
 
   const closed = bazaars.filter((b) => b.status === 'closed');
   const active = bazaars.filter((b) => b.status === 'active');
@@ -89,6 +96,42 @@ export default function ReportsScreen() {
             </div>
           )}
 
+          {/* ---- Direct sales (individual product bills) ---- */}
+          <div className="stats-row">
+            <div className="stat-card">
+              <div className="stat-label">Direct Sales</div>
+              <div className="stat-value green">{inr(salesRevenue)}</div>
+              <div className="stat-change">{sales.length} bill{sales.length !== 1 ? 's' : ''}</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-label">Profit (internal)</div>
+              <div className={`stat-value ${salesProfit < 0 ? '' : 'green'}`}>{inr(salesProfit)}</div>
+              <div className="stat-change">not shown on bills</div>
+            </div>
+          </div>
+
+          <div className="section-title" style={{ marginBottom: 10 }}>Sale Bills</div>
+          {!loading && sales.length === 0 && (
+            <div className="empty-hint">No direct sales yet. Tap <b>New Sale</b> on the Dashboard or Inventory to sell a product and generate a bill.</div>
+          )}
+          <div className="assignment-history-list">
+            {sales.map((s) => (
+              <div key={s.id} className="history-card">
+                <div className="history-card-top">
+                  <div>
+                    <div className="history-batch">{s.bill_no}{s.buyer_name ? ` · ${s.buyer_name}` : ''}</div>
+                    <div className="history-time">{(s.payment_mode || 'cash').toUpperCase()} · {timeAgo(s.created_at)}</div>
+                  </div>
+                  <span className="history-status settled">{inr(s.total)}</span>
+                </div>
+                <div className="history-item-name">
+                  {s.items.length} item{s.items.length !== 1 ? 's' : ''} · profit {inr(s.profit)}
+                </div>
+                <button className="btn-view-receipt" onClick={() => setViewBill(s)}>View / print bill 🧾</button>
+              </div>
+            ))}
+          </div>
+
           <div className="section-title" style={{ marginBottom: 10 }}>Sold Reports</div>
           {loading && <div className="empty-hint">Loading…</div>}
           {!loading && closed.length === 0 && (
@@ -141,6 +184,12 @@ export default function ReportsScreen() {
           </div>
         </div>
       </div>
+
+      {viewBill && (
+        <Modal title={`Bill ${viewBill.bill_no}`} onClose={() => setViewBill(null)}>
+          <BillReceipt bill={viewBill} onClose={() => setViewBill(null)} />
+        </Modal>
+      )}
     </>
   );
 }

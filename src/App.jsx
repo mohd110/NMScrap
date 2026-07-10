@@ -13,6 +13,7 @@ import BazaarVendorsScreen from './components/BazaarVendorsScreen';
 import AssignInventoryScreen from './components/AssignInventoryScreen';
 import WednesdayLedgerScreen from './components/WednesdayLedgerScreen';
 import ReportsScreen from './components/ReportsScreen';
+import SellScreen from './components/SellScreen';
 
 function renderScreen(screen) {
   switch (screen) {
@@ -23,6 +24,7 @@ function renderScreen(screen) {
     case 'assign':    return <AssignInventoryScreen />;
     case 'bazaar':    return <WednesdayLedgerScreen />;
     case 'reports':   return <ReportsScreen />;
+    case 'sell':      return <SellScreen />;
     default:          return <DashboardScreen />;
   }
 }

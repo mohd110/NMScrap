@@ -234,3 +234,145 @@ begin
     where id = p_bazaar_id and user_id = v_uid;
 end;
 $$;
+
+-- ============================================================
+--  DIRECT SALES  (sell products individually, outside a bazaar)
+--  Each sale is ONE bill with one or more line items. The
+--  selling price is captured per line and may differ from the
+--  product's wholesale (cost) price. Profit is stored for the
+--  owner's own reporting only — it is never shown on the bill.
+-- ============================================================
+create table if not exists public.sales (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid not null references auth.users(id) on delete cascade,
+  bill_no      text not null,
+  buyer_name   text,
+  buyer_phone  text,
+  payment_mode text not null default 'cash',     -- cash | upi | credit
+  note         text,
+  total        numeric not null default 0,        -- selling total (₹)
+  cost_total   numeric not null default 0,        -- wholesale total (₹, internal)
+  profit       numeric not null default 0,        -- total - cost_total (internal)
+  created_at   timestamptz not null default now()
+);
+create index if not exists sales_user_idx on public.sales(user_id);
+
+create table if not exists public.sale_items (
+  id              uuid primary key default gen_random_uuid(),
+  sale_id         uuid not null references public.sales(id) on delete cascade,
+  product_id      uuid references public.products(id) on delete set null,
+  product_name    text not null,        -- snapshot at sale time
+  sku             text,
+  unit            text not null default 'kg',
+  quantity        numeric not null default 0,
+  wholesale_price numeric not null default 0,     -- cost snapshot (internal)
+  sale_price      numeric not null default 0,     -- actual selling price
+  line_total      numeric not null default 0      -- quantity * sale_price
+);
+create index if not exists sale_items_sale_idx on public.sale_items(sale_id);
+
+-- RLS for the two new tables (mirrors the pattern above) -----------------------
+alter table public.sales      enable row level security;
+alter table public.sale_items enable row level security;
+
+drop policy if exists "own_select_sales" on public.sales;
+drop policy if exists "own_write_sales"  on public.sales;
+create policy "own_select_sales" on public.sales
+  for select using (auth.uid() = user_id);
+create policy "own_write_sales" on public.sales
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "sale_items_access" on public.sale_items;
+create policy "sale_items_access" on public.sale_items
+  for all
+  using (exists (select 1 from public.sales s
+                 where s.id = sale_items.sale_id and s.user_id = auth.uid()))
+  with check (exists (select 1 from public.sales s
+                 where s.id = sale_items.sale_id and s.user_id = auth.uid()));
+
+-- ============================================================
+--  RPC: record_sale
+--  Creates a bill, writes its line items, and moves stock OUT
+--  of inventory atomically. Refuses to oversell. Auto-numbers
+--  the bill (NM-0001, NM-0002, ...) per user.
+--  p_items = jsonb array of
+--    { product_id, product_name, sku, unit, quantity,
+--      wholesale_price, sale_price }
+-- ============================================================
+create or replace function public.record_sale(
+  p_buyer_name   text,
+  p_buyer_phone  text,
+  p_payment_mode text,
+  p_note         text,
+  p_items        jsonb
+) returns uuid
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  v_sale_id    uuid;
+  v_item       jsonb;
+  v_uid        uuid := auth.uid();
+  v_qty        numeric;
+  v_sale_price numeric;
+  v_cost       numeric;
+  v_pid        uuid;
+  v_stock      numeric;
+  v_bill_no    text;
+  v_total      numeric := 0;
+  v_cost_total numeric := 0;
+begin
+  -- next bill number for this user, zero-padded: NM-0001, NM-0002, ...
+  v_bill_no := 'NM-' || lpad(
+    ((select count(*) from public.sales where user_id = v_uid) + 1)::text, 4, '0');
+
+  insert into public.sales
+    (user_id, bill_no, buyer_name, buyer_phone, payment_mode, note)
+  values
+    (v_uid, v_bill_no, nullif(p_buyer_name,''), nullif(p_buyer_phone,''),
+     coalesce(nullif(p_payment_mode,''), 'cash'), nullif(p_note,''))
+  returning id into v_sale_id;
+
+  for v_item in select * from jsonb_array_elements(p_items)
+  loop
+    v_qty        := coalesce((v_item->>'quantity')::numeric, 0);
+    v_sale_price := coalesce((v_item->>'sale_price')::numeric, 0);
+    v_cost       := coalesce((v_item->>'wholesale_price')::numeric, 0);
+    v_pid        := nullif(v_item->>'product_id','')::uuid;
+
+    -- move stock out (and refuse to oversell) when it's a real product
+    if v_pid is not null then
+      select quantity into v_stock from public.products
+        where id = v_pid and user_id = v_uid for update;
+      if v_stock is null then
+        raise exception 'Product not found';
+      end if;
+      if v_stock < v_qty then
+        raise exception 'Not enough stock for % (have %, need %)',
+          v_item->>'product_name', v_stock, v_qty;
+      end if;
+      update public.products
+        set quantity = quantity - v_qty, updated_at = now()
+        where id = v_pid and user_id = v_uid;
+    end if;
+
+    insert into public.sale_items
+      (sale_id, product_id, product_name, sku, unit, quantity,
+       wholesale_price, sale_price, line_total)
+    values
+      (v_sale_id, v_pid, v_item->>'product_name', v_item->>'sku',
+       coalesce(v_item->>'unit','kg'), v_qty, v_cost, v_sale_price,
+       v_qty * v_sale_price);
+
+    v_total      := v_total + v_qty * v_sale_price;
+    v_cost_total := v_cost_total + v_qty * v_cost;
+  end loop;
+
+  update public.sales
+    set total = v_total, cost_total = v_cost_total, profit = v_total - v_cost_total
+    where id = v_sale_id;
+
+  return v_sale_id;
+end;
+$$;

@@ -78,6 +78,10 @@ export default function InventoryScreen() {
             </button>
           </div>
 
+          <button className="sale-cta" onClick={() => navigate('sell')}>
+            🧾 New Sale / Generate Bill
+          </button>
+
           <div className="section-header">
             <div className="section-title">All Products ({filtered.length})</div>
           </div>
@@ -101,7 +105,10 @@ export default function InventoryScreen() {
                   </div>
                   <div className="inv-card-right">
                     <span className={`badge ${low ? 'danger' : 'ok'}`}>{qty(p.quantity, p.unit)}</span>
-                    <button className="inv-del-btn" onClick={(e) => { e.stopPropagation(); handleDelete(p); }} title="Delete">🗑</button>
+                    <div className="inv-card-actions">
+                      <button className="inv-sell-btn" onClick={(e) => { e.stopPropagation(); navigate('sell', { productId: p.id }); }} title="Sell this">🧾</button>
+                      <button className="inv-del-btn" onClick={(e) => { e.stopPropagation(); handleDelete(p); }} title="Delete">🗑</button>
+                    </div>
                   </div>
                 </div>
               );
