@@ -1,11 +1,13 @@
 import { AppHeader } from './Shared';
 import { useData } from '../context/DataContext';
 import { useNav } from '../context/NavContext';
+import { useLang } from '../context/LangContext';
 import { inr, qty, lineValue, bazaarTotals } from '../lib/format';
 
 export default function DashboardScreen() {
   const { products, bazaars, sales, loading } = useData();
   const { navigate, goTab } = useNav();
+  const { t } = useLang();
 
   const salesRevenue = sales.reduce((s, sale) => s + (Number(sale.total) || 0), 0);
 
@@ -25,44 +27,44 @@ export default function DashboardScreen() {
 
   return (
     <>
-      <AppHeader title="NM Scrap" subtitle="Enterprises" hindiLabel="हिंदी" />
+      <AppHeader title={t('dash_title')} subtitle={t('dash_sub')} />
 
       <div className="screen-content">
         <div className="dashboard-screen">
 
           <div className="welcome-banner">
-            <div className="welcome-text">Welcome Back 👋</div>
-            <div className="welcome-name">Inventory Manager</div>
+            <div className="welcome-text">{t('dash_welcome')}</div>
+            <div className="welcome-name">{t('dash_welcome_name')}</div>
           </div>
 
           <div className="stats-row">
             <div className="stat-card">
-              <div className="stat-label">Total Stock</div>
+              <div className="stat-label">{t('dash_total_stock')}</div>
               <div className="stat-value">{loading ? '—' : qty(totalUnits)}</div>
             </div>
             <div className="stat-card">
-              <div className="stat-label">Total Sold (Bazaars)</div>
+              <div className="stat-label">{t('dash_total_sold')}</div>
               <div className="stat-value green">{loading ? '—' : inr(soldValue)}</div>
-              <div className="stat-change">{closed.length} bazaar{closed.length !== 1 ? 's' : ''} settled</div>
+              <div className="stat-change">{t('dash_bazaars_settled', { n: closed.length })}</div>
             </div>
           </div>
 
           <div className="stats-row">
             <div className="stat-card">
-              <div className="stat-label">Inventory Value</div>
+              <div className="stat-label">{t('dash_inventory_value')}</div>
               <div className="stat-value">{loading ? '—' : inr(inventoryValue)}</div>
-              <div className="stat-change">{products.length} product line{products.length !== 1 ? 's' : ''}</div>
+              <div className="stat-change">{t('dash_product_lines', { n: products.length })}</div>
             </div>
             <div className="stat-card">
-              <div className="stat-label">Direct Sales</div>
+              <div className="stat-label">{t('dash_direct_sales')}</div>
               <div className="stat-value green">{loading ? '—' : inr(salesRevenue)}</div>
-              <div className="stat-change">{sales.length} bill{sales.length !== 1 ? 's' : ''}</div>
+              <div className="stat-change">{t('dash_bills', { n: sales.length })}</div>
             </div>
           </div>
 
           <div className="chart-card">
             <div className="chart-card-header">
-              <div className="chart-card-title">Recent Bazaar Sales</div>
+              <div className="chart-card-title">{t('dash_recent_sales')}</div>
               <div className="chart-more-btn" onClick={() => goTab('reports')} style={{ cursor: 'pointer' }}>⋮</div>
             </div>
             <div className="chart-placeholder">
@@ -78,37 +80,37 @@ export default function DashboardScreen() {
 
           <div className="action-btns-row">
             <button id="btn-scan-bill" className="action-btn primary" onClick={() => navigate('scanner')}>
-              <span className="btn-icon">⬛</span> Scan Bill
+              <span className="btn-icon">⬛</span> {t('scan_bill')}
             </button>
             <button id="btn-add-product" className="action-btn outlined" onClick={() => navigate('inventory', { openAdd: true })}>
-              <span className="btn-icon">＋</span> Add Product
+              <span className="btn-icon">＋</span> {t('add_product')}
             </button>
           </div>
 
           <button id="btn-new-sale" className="sale-cta" onClick={() => navigate('sell')}>
-            🧾 New Sale / Generate Bill
+            {t('new_sale_cta')}
           </button>
 
           <div>
             <div className="section-header">
-              <div className="section-title">Low Stock Alerts</div>
-              <div className="section-view-all" onClick={() => goTab('inventory')}>View All</div>
+              <div className="section-title">{t('dash_low_stock')}</div>
+              <div className="section-view-all" onClick={() => goTab('inventory')}>{t('view_all')}</div>
             </div>
 
             <div className="stock-alert-list">
               {lowStock.length === 0 && (
-                <div className="empty-hint">No low-stock items. You're well stocked. ✅</div>
+                <div className="empty-hint">{t('dash_no_low_stock')}</div>
               )}
               {lowStock.map((p) => (
                 <div key={p.id} className="stock-alert-card" onClick={() => goTab('inventory')}>
                   <div className="stock-alert-icon">⚙️</div>
                   <div className="stock-alert-info">
                     <div className="stock-alert-name">{p.name}</div>
-                    <div className="stock-alert-sku">{p.sku || 'No SKU'}</div>
+                    <div className="stock-alert-sku">{p.sku || t('no_sku')}</div>
                   </div>
                   <div className="stock-alert-badge">
-                    <span className="badge danger">{qty(p.quantity, p.unit)} Left</span>
-                    <span className="badge-sub">Min {qty(p.min_stock, p.unit)}</span>
+                    <span className="badge danger">{qty(p.quantity, p.unit)} {t('dash_left')}</span>
+                    <span className="badge-sub">{t('dash_min')} {qty(p.min_stock, p.unit)}</span>
                   </div>
                 </div>
               ))}

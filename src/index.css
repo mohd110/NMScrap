@@ -536,8 +536,17 @@ body {
   font-weight: 700;
   color: var(--primary);
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 5px 12px;
+  font-family: var(--font);
+  background: var(--primary-bg, rgba(0, 0, 0, 0.04));
+  border: 1.5px solid var(--primary);
+  border-radius: var(--radius-full);
+  line-height: 1;
+  transition: all 0.15s;
+  white-space: nowrap;
 }
+.header-hindi-btn:hover { background: var(--primary); color: var(--white); }
+.header-hindi-btn:active { transform: translateY(1px); }
 
 /* Back Header */
 .back-header {

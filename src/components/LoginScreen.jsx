@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useLang } from '../context/LangContext';
 
 export default function LoginScreen() {
   const { signIn, signUp, isConfigured } = useAuth();
+  const { lang, setLang, t } = useLang();
   const [showPass, setShowPass] = useState(false);
-  const [lang, setLang] = useState('en');
   const [mode, setMode] = useState('login'); // login | register
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,7 +17,7 @@ export default function LoginScreen() {
   const handleSubmit = async () => {
     setMsg(null);
     if (!email || !password) {
-      setMsg({ type: 'error', text: 'Enter email and password.' });
+      setMsg({ type: 'error', text: t('login_need_both') });
       return;
     }
     setBusy(true);
@@ -26,12 +27,12 @@ export default function LoginScreen() {
       if (error) {
         setMsg({ type: 'error', text: error.message });
       } else if (mode === 'register' && !data.session) {
-        setMsg({ type: 'ok', text: 'Account created. Check your email to confirm, then log in.' });
+        setMsg({ type: 'ok', text: t('login_account_created') });
         setMode('login');
       }
       // On success the AuthProvider session change swaps the screen automatically.
     } catch (e) {
-      setMsg({ type: 'error', text: e.message || 'Something went wrong.' });
+      setMsg({ type: 'error', text: e.message || t('login_something_wrong') });
     } finally {
       setBusy(false);
     }
@@ -42,25 +43,25 @@ export default function LoginScreen() {
       <div className="login-header">
         <div className="login-logo-box"><span className="login-logo-icon">♻️</span></div>
         <div>
-          <div className="login-title">NM Scrap Enterprises</div>
+          <div className="login-title">{t('login_title')}</div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', marginTop: 4 }}>
-            BUY · TRACK · SELL · GROW
+            {t('login_tagline')}
           </div>
         </div>
       </div>
 
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-          {mode === 'login' ? 'Welcome Back' : 'Create Account'}
+          {mode === 'login' ? t('login_welcome_back') : t('login_create_account')}
         </div>
         <div style={{ fontSize: 15, color: 'var(--text-secondary)', marginTop: 2 }}>
-          {mode === 'login' ? 'Sign in to manage your inventory' : 'Register to start tracking scrap'}
+          {mode === 'login' ? t('login_signin_sub') : t('login_register_sub')}
         </div>
       </div>
 
       <div className="login-form">
         <div className="login-form-group">
-          <div className="login-label">Email</div>
+          <div className="login-label">{t('login_email')}</div>
           <div className="login-input-wrap">
             <span className="login-input-icon">👤</span>
             <input
@@ -76,7 +77,7 @@ export default function LoginScreen() {
         </div>
 
         <div className="login-form-group">
-          <div className="login-label">Password</div>
+          <div className="login-label">{t('login_password')}</div>
           <div className="login-input-wrap">
             <span className="login-input-icon">🔒</span>
             <input
@@ -107,22 +108,22 @@ export default function LoginScreen() {
         )}
 
         <button id="btn-login" className="btn-login" onClick={handleSubmit} disabled={busy}>
-          {busy ? 'Please wait…' : mode === 'login' ? 'Login / लॉगिन' : 'Register / रजिस्टर'}
+          {busy ? t('login_please_wait') : mode === 'login' ? t('login_btn') : t('register_btn')}
         </button>
 
         <div className="login-links">
-          <span className="login-link" onClick={() => setMsg({ type: 'ok', text: 'Password reset: contact your admin.' })}>
-            Forgot Password?
+          <span className="login-link" onClick={() => setMsg({ type: 'ok', text: t('login_pw_reset') })}>
+            {t('login_forgot')}
           </span>
           <span className="login-link" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setMsg(null); }}>
-            {mode === 'login' ? 'Register Agency' : 'Have an account? Login'}
+            {mode === 'login' ? t('login_register_agency') : t('login_have_account')}
           </span>
         </div>
       </div>
 
       <div className="login-lang-bar">
-        <button className={`lang-btn ${lang === 'en' ? 'active' : 'inactive'}`} onClick={() => setLang('en')}>🌐 English</button>
-        <button className={`lang-btn ${lang === 'hi' ? 'active' : 'inactive'}`} onClick={() => setLang('hi')}>हिंदी</button>
+        <button className={`lang-btn ${lang === 'en' ? 'active' : 'inactive'}`} onClick={() => setLang('en')}>{t('lang_english')}</button>
+        <button className={`lang-btn ${lang === 'hi' ? 'active' : 'inactive'}`} onClick={() => setLang('hi')}>{t('lang_hindi')}</button>
       </div>
 
       <div className="login-version">Version 1.0.2 · NM Scrap Enterprises</div>

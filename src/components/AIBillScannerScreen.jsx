@@ -4,12 +4,14 @@ import BillReviewModal from './BillReviewModal';
 import { useData } from '../context/DataContext';
 import { useNav } from '../context/NavContext';
 import { useToast } from '../context/ToastContext';
+import { useLang } from '../context/LangContext';
 import { parseBill } from '../lib/parseBill';
 
 export default function AIBillScannerScreen() {
   const { importBillItems } = useData();
   const { navigate } = useNav();
   const { notify } = useToast();
+  const { t } = useLang();
   const fileRef = useRef(null);
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState(null); // { items, rawText }
@@ -20,7 +22,7 @@ export default function AIBillScannerScreen() {
       const parsed = await parseBill(file);
       setResult(parsed);
     } catch (e) {
-      notify(e.message || 'Could not read the bill', 'error');
+      notify(e.message || t('scan_read_failed'), 'error');
     } finally {
       setScanning(false);
     }
@@ -29,17 +31,17 @@ export default function AIBillScannerScreen() {
   const handleConfirm = async (items) => {
     try {
       await importBillItems(items, result?.rawText || '');
-      notify(`${items.length} item${items.length !== 1 ? 's' : ''} added to inventory`);
+      notify(t('scan_added', { n: items.length }));
       setResult(null);
       navigate('inventory');
     } catch (e) {
-      notify(e.message || 'Import failed', 'error');
+      notify(e.message || t('scan_import_failed'), 'error');
     }
   };
 
   return (
     <>
-      <BackHeader title="AI Bill Scanner" rightLabel={null} />
+      <BackHeader title={t('scan_title')} showLang={false} />
 
       <div className="screen-content" style={{ overflow: 'hidden' }}>
         <div className="scanner-screen" style={{ height: '100%' }}>
@@ -81,13 +83,13 @@ export default function AIBillScannerScreen() {
             </div>
 
             <div className="camera-overlay-text">
-              {scanning ? 'Reading bill…' : 'Scan printed bill or handwritten note'}
+              {scanning ? t('scan_reading') : t('scan_prompt')}
             </div>
 
             <div className="camera-controls">
               <div className="camera-control-btn" id="btn-gallery" onClick={() => !scanning && fileRef.current?.click()}>
                 <span>🖼</span>
-                <div style={{ fontSize: 10, marginTop: 2, color: 'rgba(255,255,255,0.7)' }}>Gallery</div>
+                <div style={{ fontSize: 10, marginTop: 2, color: 'rgba(255,255,255,0.7)' }}>{t('scan_gallery')}</div>
               </div>
               <div
                 id="btn-shutter"
@@ -100,7 +102,7 @@ export default function AIBillScannerScreen() {
               />
               <div className="camera-control-btn" id="btn-recent" onClick={() => navigate('inventory')}>
                 <span>🕐</span>
-                <div style={{ fontSize: 10, marginTop: 2, color: 'rgba(255,255,255,0.7)' }}>Recent</div>
+                <div style={{ fontSize: 10, marginTop: 2, color: 'rgba(255,255,255,0.7)' }}>{t('scan_recent')}</div>
               </div>
             </div>
 
@@ -116,9 +118,9 @@ export default function AIBillScannerScreen() {
 
           <div className="scanner-bottom">
             <div className="scanner-tabs">
-              <div className="scanner-tab">Camera</div>
-              <div className="scanner-tab active">Scan</div>
-              <div className="scanner-tab" onClick={() => navigate('inventory')}>History</div>
+              <div className="scanner-tab">{t('scan_tab_camera')}</div>
+              <div className="scanner-tab active">{t('scan_tab_scan')}</div>
+              <div className="scanner-tab" onClick={() => navigate('inventory')}>{t('scan_tab_history')}</div>
             </div>
           </div>
         </div>

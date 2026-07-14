@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Modal from './Modal';
+import { useLang } from '../context/LangContext';
 import { inr, lineValue } from '../lib/format';
 
 const UNITS = ['kg', 'units', 'MT'];
@@ -7,6 +8,7 @@ const UNITS = ['kg', 'units', 'MT'];
 // Editable review of the scanned bill BEFORE anything is written to inventory.
 // The user can fix names/quantities/prices, delete misread lines, or add rows.
 export default function BillReviewModal({ initialItems, rawText, onCancel, onConfirm }) {
+  const { t } = useLang();
   const [items, setItems] = useState(
     initialItems.map((it, i) => ({ _k: i, name: it.name, unit: it.unit || 'units', quantity: it.quantity, unit_price: it.unit_price }))
   );
@@ -37,23 +39,21 @@ export default function BillReviewModal({ initialItems, rawText, onCancel, onCon
 
   return (
     <Modal
-      title="Review Scanned Items"
+      title={t('rev_title')}
       onClose={onCancel}
       footer={
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div className="review-total-row">
-            <span>Total bill value</span>
+            <span>{t('rev_total')}</span>
             <b>{inr(total)}</b>
           </div>
           <button className="btn-confirm" onClick={confirm} disabled={busy || validCount === 0}>
-            {busy ? 'Adding…' : `✓ Add ${validCount} item${validCount !== 1 ? 's' : ''} to Inventory`}
+            {busy ? t('rev_adding') : t('rev_add_n', { n: validCount })}
           </button>
         </div>
       }
     >
-      <div className="review-hint">
-        ✏️ Check every line — fix anything the scanner misread before adding it to stock.
-      </div>
+      <div className="review-hint">{t('rev_hint')}</div>
 
       {items.map((it) => (
         <div key={it._k} className="review-item">
@@ -61,39 +61,39 @@ export default function BillReviewModal({ initialItems, rawText, onCancel, onCon
             <input
               className="review-name-input"
               value={it.name}
-              placeholder="Product name"
+              placeholder={t('rev_name_ph')}
               onChange={(e) => setItem(it._k, 'name', e.target.value)}
             />
-            <button className="review-remove" onClick={() => removeItem(it._k)} title="Remove line">🗑</button>
+            <button className="review-remove" onClick={() => removeItem(it._k)} title={t('remove')}>🗑</button>
           </div>
           <div className="review-item-grid">
             <label className="review-field">
-              <span>Qty</span>
+              <span>{t('rev_qty')}</span>
               <input type="number" value={it.quantity}
                      onChange={(e) => setItem(it._k, 'quantity', e.target.value)} />
             </label>
             <label className="review-field">
-              <span>Unit</span>
+              <span>{t('rev_unit')}</span>
               <select value={it.unit} onChange={(e) => setItem(it._k, 'unit', e.target.value)}>
                 {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
               </select>
             </label>
             <label className="review-field">
-              <span>₹ / unit</span>
+              <span>{t('rev_per_unit')}</span>
               <input type="number" value={it.unit_price}
                      onChange={(e) => setItem(it._k, 'unit_price', e.target.value)} />
             </label>
           </div>
-          <div className="review-line-value">Line: {inr(lineValue(it.quantity, it.unit_price))}</div>
+          <div className="review-line-value">{t('rev_line', { v: inr(lineValue(it.quantity, it.unit_price)) })}</div>
         </div>
       ))}
 
-      <button className="btn-add-item" style={{ marginTop: 4 }} onClick={addRow}>＋ Add Row</button>
+      <button className="btn-add-item" style={{ marginTop: 4 }} onClick={addRow}>{t('rev_add_row')}</button>
 
       {rawText && (
         <div className="review-raw">
           <button className="review-raw-toggle" onClick={() => setShowRaw((s) => !s)}>
-            {showRaw ? '▾' : '▸'} Raw scanned text
+            {showRaw ? '▾' : '▸'} {t('rev_raw_text')}
           </button>
           {showRaw && <pre className="review-raw-text">{rawText}</pre>}
         </div>

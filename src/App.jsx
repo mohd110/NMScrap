@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
 import { NavProvider, useNav, TAB_SCREENS } from './context/NavContext';
 import { ToastProvider } from './context/ToastContext';
+import { LangProvider } from './context/LangContext';
 import { StatusBar, BottomNav } from './components/Shared';
 import SplashScreen from './components/SplashScreen';
 import LoginScreen from './components/LoginScreen';
@@ -75,10 +76,12 @@ function Root() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <ToastProvider>
-        <Root />
-      </ToastProvider>
-    </AuthProvider>
+    <LangProvider>
+      <AuthProvider>
+        <ToastProvider>
+          <Root />
+        </ToastProvider>
+      </AuthProvider>
+    </LangProvider>
   );
 }

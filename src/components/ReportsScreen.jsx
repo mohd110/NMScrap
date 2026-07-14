@@ -4,11 +4,13 @@ import Modal from './Modal';
 import BillReceipt from './BillReceipt';
 import { useData } from '../context/DataContext';
 import { useNav } from '../context/NavContext';
+import { useLang } from '../context/LangContext';
 import { inr, qty, lineValue, timeAgo, bazaarTotals } from '../lib/format';
 
 export default function ReportsScreen() {
   const { bazaars, vendors, sales, loading } = useData();
   const { params } = useNav();
+  const { t } = useLang();
   const [open, setOpen] = useState(params.bazaarId || null);
   const [viewBill, setViewBill] = useState(null);
 
@@ -42,27 +44,27 @@ export default function ReportsScreen() {
 
   return (
     <>
-      <AppHeader title="Reports" subtitle="Bazaar sales" hindiLabel={null} />
+      <AppHeader title={t('rep_title')} subtitle={t('rep_sub')} />
 
       <div className="screen-content">
         <div className="reports-screen">
 
           <div className="stats-row">
             <div className="stat-card">
-              <div className="stat-label">Bazaar Revenue</div>
+              <div className="stat-label">{t('rep_bazaar_revenue')}</div>
               <div className="stat-value green">{inr(bazaarRevenue)}</div>
-              <div className="stat-change">{qty(soldUnits)} units · {closed.length} closed</div>
+              <div className="stat-change">{t('rep_units_closed', { units: qty(soldUnits), n: closed.length })}</div>
             </div>
             <div className="stat-card">
-              <div className="stat-label">Bazaar Profit</div>
+              <div className="stat-label">{t('rep_bazaar_profit')}</div>
               <div className={`stat-value ${bazaarProfit < 0 ? '' : 'green'}`}>{inr(bazaarProfit)}</div>
-              <div className="stat-change">revenue − wholesale cost</div>
+              <div className="stat-change">{t('rep_rev_minus_cost')}</div>
             </div>
           </div>
 
           {leaderboard.length > 0 && (
             <div className="chart-card">
-              <div className="chart-card-title" style={{ marginBottom: 12 }}>Top Products by Units Sold</div>
+              <div className="chart-card-title" style={{ marginBottom: 12 }}>{t('rep_top_products')}</div>
               {leaderboard.map((l) => (
                 <div key={l.name} className="lb-row">
                   <div className="lb-head">
@@ -70,7 +72,7 @@ export default function ReportsScreen() {
                     <span className="lb-val">{qty(l.units, l.unit)}</span>
                   </div>
                   <div className="lb-track"><div className="lb-fill" style={{ width: `${(l.units / maxVal) * 100}%` }} /></div>
-                  <div className="lb-sub">sold across bazaars</div>
+                  <div className="lb-sub">{t('rep_sold_across')}</div>
                 </div>
               ))}
             </div>
@@ -78,7 +80,7 @@ export default function ReportsScreen() {
 
           {active.length > 0 && (
             <div>
-              <div className="section-title" style={{ marginBottom: 10 }}>In Progress</div>
+              <div className="section-title" style={{ marginBottom: 10 }}>{t('rep_in_progress')}</div>
               <div className="assignment-history-list">
                 {active.map((b) => {
                   const assignedVal = b.items.reduce((s, it) => s + lineValue(it.qty_assigned, it.unit_price), 0);
@@ -87,11 +89,11 @@ export default function ReportsScreen() {
                       <div className="history-card-top">
                         <div>
                           <div className="history-batch">{b.name}</div>
-                          <div className="history-time">{vendorName(b.vendor_id)} · opened {timeAgo(b.opened_at)}</div>
+                          <div className="history-time">{vendorName(b.vendor_id)} · {t('rep_opened', { when: timeAgo(b.opened_at) })}</div>
                         </div>
-                        <span className="history-status assigned">ACTIVE</span>
+                        <span className="history-status assigned">{t('rep_active')}</span>
                       </div>
-                      <div className="history-item-name">{inr(assignedVal)} assigned · awaiting return</div>
+                      <div className="history-item-name">{t('rep_assigned_awaiting', { v: inr(assignedVal) })}</div>
                     </div>
                   );
                 })}
@@ -102,20 +104,20 @@ export default function ReportsScreen() {
           {/* ---- Direct sales (individual product bills) ---- */}
           <div className="stats-row">
             <div className="stat-card">
-              <div className="stat-label">Direct Sales</div>
+              <div className="stat-label">{t('rep_direct_sales')}</div>
               <div className="stat-value green">{inr(salesRevenue)}</div>
-              <div className="stat-change">{sales.length} bill{sales.length !== 1 ? 's' : ''}</div>
+              <div className="stat-change">{t('rep_bills', { n: sales.length })}</div>
             </div>
             <div className="stat-card">
-              <div className="stat-label">Profit (internal)</div>
+              <div className="stat-label">{t('rep_profit_internal')}</div>
               <div className={`stat-value ${salesProfit < 0 ? '' : 'green'}`}>{inr(salesProfit)}</div>
-              <div className="stat-change">not shown on bills</div>
+              <div className="stat-change">{t('rep_not_on_bills')}</div>
             </div>
           </div>
 
-          <div className="section-title" style={{ marginBottom: 10 }}>Sale Bills</div>
+          <div className="section-title" style={{ marginBottom: 10 }}>{t('rep_sale_bills')}</div>
           {!loading && sales.length === 0 && (
-            <div className="empty-hint">No direct sales yet. Tap <b>New Sale</b> on the Dashboard or Inventory to sell a product and generate a bill.</div>
+            <div className="empty-hint">{t('rep_no_direct_sales')}</div>
           )}
           <div className="assignment-history-list">
             {sales.map((s) => (
@@ -128,17 +130,17 @@ export default function ReportsScreen() {
                   <span className="history-status settled">{inr(s.total)}</span>
                 </div>
                 <div className="history-item-name">
-                  {s.items.length} item{s.items.length !== 1 ? 's' : ''} · profit {inr(s.profit)}
+                  {t('rep_items_profit', { n: s.items.length, profit: inr(s.profit) })}
                 </div>
-                <button className="btn-view-receipt" onClick={() => setViewBill(s)}>View / print bill 🧾</button>
+                <button className="btn-view-receipt" onClick={() => setViewBill(s)}>{t('rep_view_print_bill')}</button>
               </div>
             ))}
           </div>
 
-          <div className="section-title" style={{ marginBottom: 10 }}>Sold Reports</div>
-          {loading && <div className="empty-hint">Loading…</div>}
+          <div className="section-title" style={{ marginBottom: 10 }}>{t('rep_sold_reports')}</div>
+          {loading && <div className="empty-hint">{t('rep_loading')}</div>}
           {!loading && closed.length === 0 && (
-            <div className="empty-hint">No closed bazaars yet. Assign inventory to a bazaar and record its returns to generate a sold report.</div>
+            <div className="empty-hint">{t('rep_no_closed')}</div>
           )}
 
           <div className="assignment-history-list">
@@ -151,7 +153,7 @@ export default function ReportsScreen() {
                   <div className="history-card-top" style={{ cursor: 'pointer' }} onClick={() => setOpen(isOpen ? null : b.id)}>
                     <div>
                       <div className="history-batch">{b.name}</div>
-                      <div className="history-time">{vendorName(b.vendor_id)} · closed {timeAgo(b.closed_at)}</div>
+                      <div className="history-time">{vendorName(b.vendor_id)} · {t('rep_closed_when', { when: timeAgo(b.closed_at) })}</div>
                     </div>
                     <span className="history-status settled">{inr(totals.revenue)}</span>
                   </div>
@@ -159,7 +161,7 @@ export default function ReportsScreen() {
                   {isOpen && (
                     <div className="report-lines">
                       <div className="report-line report-line-head">
-                        <span>Product</span><span>Sold</span><span>Returned</span><span>Cost</span>
+                        <span>{t('rep_col_product')}</span><span>{t('rep_col_sold')}</span><span>{t('rep_col_returned')}</span><span>{t('rep_col_cost')}</span>
                       </div>
                       {b.items.map((it) => (
                         <div key={it.id} className="report-line">
@@ -170,23 +172,23 @@ export default function ReportsScreen() {
                         </div>
                       ))}
                       <div className="report-line report-line-total">
-                        <span>Amount received</span>
+                        <span>{t('rep_amount_received')}</span>
                         <span>{qty(b.items.reduce((s, it) => s + Number(it.qty_sold), 0))}</span>
-                        <span>{qty(retUnits)} ret</span>
+                        <span>{qty(retUnits)} {t('rep_ret')}</span>
                         <span>{inr(totals.revenue)}</span>
                       </div>
                       <div className="report-line" style={{ color: 'var(--text-muted)' }}>
-                        <span>Wholesale cost of sold</span><span /><span /><span>− {inr(totals.cost)}</span>
+                        <span>{t('rep_wholesale_cost_sold')}</span><span /><span /><span>− {inr(totals.cost)}</span>
                       </div>
                       <div className="report-line report-line-total">
-                        <span>Profit</span><span /><span />
+                        <span>{t('rep_profit')}</span><span /><span />
                         <span style={{ color: totals.profit < 0 ? 'var(--danger)' : 'var(--primary)' }}>{inr(totals.profit)}</span>
                       </div>
                     </div>
                   )}
 
                   <button className="btn-view-receipt" onClick={() => setOpen(isOpen ? null : b.id)}>
-                    {isOpen ? 'Hide details ▲' : 'View item breakdown ▼'}
+                    {isOpen ? t('rep_hide_details') : t('rep_view_breakdown')}
                   </button>
                 </div>
               );
@@ -196,7 +198,7 @@ export default function ReportsScreen() {
       </div>
 
       {viewBill && (
-        <Modal title={`Bill ${viewBill.bill_no}`} onClose={() => setViewBill(null)}>
+        <Modal title={t('rep_bill_title', { no: viewBill.bill_no })} onClose={() => setViewBill(null)}>
           <BillReceipt bill={viewBill} onClose={() => setViewBill(null)} />
         </Modal>
       )}

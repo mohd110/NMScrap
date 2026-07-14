@@ -4,12 +4,13 @@ import BillReceipt from './BillReceipt';
 import { useData } from '../context/DataContext';
 import { useNav } from '../context/NavContext';
 import { useToast } from '../context/ToastContext';
+import { useLang } from '../context/LangContext';
 import { inr, qty } from '../lib/format';
 
 const PAYMENTS = [
-  { id: 'cash', label: 'Cash' },
-  { id: 'upi', label: 'UPI' },
-  { id: 'credit', label: 'Credit' },
+  { id: 'cash', tkey: 'sell_pay_cash' },
+  { id: 'upi', tkey: 'sell_pay_upi' },
+  { id: 'credit', tkey: 'sell_pay_credit' },
 ];
 
 // Turn an inventory product into a fresh cart line.
@@ -31,6 +32,7 @@ export default function SellScreen() {
   const { products, recordSale } = useData();
   const { params, back } = useNav();
   const { notify } = useToast();
+  const { t } = useLang();
 
   const [cart, setCart] = useState(() => {
     const pre = params.productId && products.find((p) => p.id === params.productId);
@@ -96,9 +98,9 @@ export default function SellScreen() {
         items,
       });
       setBill(created);
-      notify(`Sale recorded · ${created.bill_no}`);
+      notify(t('sell_recorded', { no: created.bill_no }));
     } catch (e) {
-      notify(e.message || 'Sale failed', 'error');
+      notify(e.message || t('sell_failed'), 'error');
     } finally {
       setBusy(false);
     }
@@ -108,7 +110,7 @@ export default function SellScreen() {
   if (bill) {
     return (
       <>
-        <BackHeader title={`Bill ${bill.bill_no}`} onBack={back} />
+        <BackHeader title={t('rep_bill_title', { no: bill.bill_no })} onBack={back} />
         <div className="screen-content">
           <BillReceipt bill={bill} onClose={back} />
         </div>
@@ -118,7 +120,7 @@ export default function SellScreen() {
 
   return (
     <>
-      <BackHeader title="New Sale" onBack={back} />
+      <BackHeader title={t('sell_title')} onBack={back} />
 
       <div className="screen-content">
         <div className="sell-screen">
@@ -128,19 +130,19 @@ export default function SellScreen() {
             <span className="inv-search-icon">🔍</span>
             <input
               className="inv-search-input"
-              placeholder="Add product to sale…"
+              placeholder={t('sell_add_product_ph')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           {search && (
             <div className="sell-picker">
-              {pickable.length === 0 && <div className="empty-hint">No matching in-stock product.</div>}
+              {pickable.length === 0 && <div className="empty-hint">{t('sell_no_match')}</div>}
               {pickable.slice(0, 6).map((p) => (
                 <div key={p.id} className="sell-pick-row" onClick={() => addLine(p)}>
                   <div>
                     <div className="sell-pick-name">{p.name}</div>
-                    <div className="sell-pick-sub">{qty(p.quantity, p.unit)} in stock · wholesale {inr(p.unit_price)}</div>
+                    <div className="sell-pick-sub">{t('sell_in_stock_wholesale', { qty: qty(p.quantity, p.unit), price: inr(p.unit_price) })}</div>
                   </div>
                   <span className="sell-pick-add">＋</span>
                 </div>
@@ -149,9 +151,9 @@ export default function SellScreen() {
           )}
 
           {/* ---- cart lines ---- */}
-          <div className="section-title" style={{ margin: '4px 0 8px' }}>Items ({cart.length})</div>
+          <div className="section-title" style={{ margin: '4px 0 8px' }}>{t('sell_items', { n: cart.length })}</div>
           {cart.length === 0 && (
-            <div className="empty-hint">Search above to add products to this sale.</div>
+            <div className="empty-hint">{t('sell_search_hint')}</div>
           )}
 
           <div className="sell-lines">
@@ -163,28 +165,28 @@ export default function SellScreen() {
                 <div key={l.product_id} className="sell-line">
                   <div className="sell-line-top">
                     <div className="sell-line-name">{l.product_name}</div>
-                    <button className="inv-del-btn" onClick={() => removeLine(l.product_id)} title="Remove">🗑</button>
+                    <button className="inv-del-btn" onClick={() => removeLine(l.product_id)} title={t('remove')}>🗑</button>
                   </div>
                   <div className="sell-line-inputs">
                     <label className="sell-field">
-                      <span>Qty ({l.unit})</span>
+                      <span>{t('sell_qty', { unit: l.unit })}</span>
                       <input className="form-input" type="number" value={l.quantity}
                              onChange={(e) => setLine(l.product_id, 'quantity', e.target.value)} />
                     </label>
                     <label className="sell-field">
-                      <span>Sell ₹/{l.unit}</span>
+                      <span>{t('sell_sell_price', { unit: l.unit })}</span>
                       <input className="form-input" type="number" value={l.sale_price}
                              onChange={(e) => setLine(l.product_id, 'sale_price', e.target.value)} />
                     </label>
                     <div className="sell-field">
-                      <span>Amount</span>
+                      <span>{t('sell_amount')}</span>
                       <div className="sell-line-amt">{inr(lineTotal)}</div>
                     </div>
                   </div>
                   <div className="sell-line-hint">
                     {over
-                      ? <span className="sell-warn">Only {qty(l.stock, l.unit)} in stock</span>
-                      : <span>Wholesale {inr(l.wholesale_price)}/{l.unit} · {qty(l.stock, l.unit)} in stock</span>}
+                      ? <span className="sell-warn">{t('sell_only_in_stock', { qty: qty(l.stock, l.unit) })}</span>
+                      : <span>{t('sell_wholesale_line', { price: inr(l.wholesale_price), unit: l.unit, qty: qty(l.stock, l.unit) })}</span>}
                   </div>
                 </div>
               );
@@ -194,33 +196,33 @@ export default function SellScreen() {
           {/* ---- buyer + payment ---- */}
           {cart.length > 0 && (
             <>
-              <div className="section-title" style={{ margin: '14px 0 8px' }}>Buyer (optional)</div>
+              <div className="section-title" style={{ margin: '14px 0 8px' }}>{t('sell_buyer_optional')}</div>
               <div className="form-row-2">
                 <div className="form-group">
-                  <div className="form-label">Name</div>
+                  <div className="form-label">{t('sell_name')}</div>
                   <input className="form-input" style={{ padding: '0 14px' }} value={buyerName}
-                         onChange={(e) => setBuyerName(e.target.value)} placeholder="Walk-in" />
+                         onChange={(e) => setBuyerName(e.target.value)} placeholder={t('sell_name_ph')} />
                 </div>
                 <div className="form-group">
-                  <div className="form-label">Phone</div>
+                  <div className="form-label">{t('sell_phone')}</div>
                   <input className="form-input" style={{ padding: '0 14px' }} value={buyerPhone}
-                         onChange={(e) => setBuyerPhone(e.target.value)} placeholder="for WhatsApp bill" />
+                         onChange={(e) => setBuyerPhone(e.target.value)} placeholder={t('sell_phone_ph')} />
                 </div>
               </div>
               <div className="form-group">
-                <div className="form-label">Payment</div>
+                <div className="form-label">{t('sell_payment')}</div>
                 <div className="pay-toggle">
                   {PAYMENTS.map((p) => (
                     <button key={p.id}
                       className={`pay-opt ${paymentMode === p.id ? 'active' : ''}`}
-                      onClick={() => setPaymentMode(p.id)}>{p.label}</button>
+                      onClick={() => setPaymentMode(p.id)}>{t(p.tkey)}</button>
                   ))}
                 </div>
               </div>
               <div className="form-group">
-                <div className="form-label">Note</div>
+                <div className="form-label">{t('sell_note')}</div>
                 <input className="form-input" style={{ padding: '0 14px' }} value={note}
-                       onChange={(e) => setNote(e.target.value)} placeholder="optional" />
+                       onChange={(e) => setNote(e.target.value)} placeholder={t('sell_note_ph')} />
               </div>
             </>
           )}
@@ -232,16 +234,16 @@ export default function SellScreen() {
         <div className="sell-summary">
           <div className="sell-summary-figures">
             <div>
-              <div className="sell-sum-label">Total</div>
+              <div className="sell-sum-label">{t('sell_total')}</div>
               <div className="sell-sum-total">{inr(total)}</div>
             </div>
-            <div className="sell-sum-profit" title="Only you see this — never on the bill">
-              <div className="sell-sum-label">Profit (internal)</div>
+            <div className="sell-sum-profit" title={t('sell_profit_tip')}>
+              <div className="sell-sum-label">{t('sell_profit_internal')}</div>
               <div className={profit < 0 ? 'sell-sum-loss' : 'sell-sum-gain'}>{inr(profit)}</div>
             </div>
           </div>
           <button className="btn-confirm" onClick={complete} disabled={!canSell}>
-            {busy ? 'Saving…' : '✓ Complete Sale & Generate Bill'}
+            {busy ? t('saving') : t('sell_complete')}
           </button>
         </div>
       )}

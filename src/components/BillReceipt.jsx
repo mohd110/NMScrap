@@ -1,3 +1,4 @@
+import { useLang } from '../context/LangContext';
 import { inr, qty } from '../lib/format';
 
 const BUSINESS = 'NM Scrap Enterprises';
@@ -26,6 +27,7 @@ function billText(bill) {
 // A printable customer bill. Profit is shown on screen for the owner only
 // (class "no-print") and never appears on the printed / shared copy.
 export default function BillReceipt({ bill, onClose, showProfit = true }) {
+  const { t } = useLang();
   const date = new Date(bill.created_at || Date.now());
 
   const shareWhatsApp = () => {
@@ -40,22 +42,22 @@ export default function BillReceipt({ bill, onClose, showProfit = true }) {
     <div className="sale-receipt-wrap">
       <div className="sale-receipt print-area">
         <div className="receipt-brand">{BUSINESS}</div>
-        <div className="receipt-sub">Scrap Trading · Cash Memo</div>
+        <div className="receipt-sub">{t('rc_cash_memo')}</div>
 
         <div className="receipt-meta">
-          <span>Bill <b>{bill.bill_no}</b></span>
+          <span>{t('rep_bill_title', { no: '' })}<b>{bill.bill_no}</b></span>
           <span>{date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
         </div>
         {(bill.buyer_name || bill.buyer_phone) && (
           <div className="receipt-meta">
-            <span>{bill.buyer_name || 'Walk-in'}</span>
+            <span>{bill.buyer_name || t('rc_walk_in')}</span>
             <span>{bill.buyer_phone || ''}</span>
           </div>
         )}
 
         <div className="receipt-lines">
           <div className="receipt-line receipt-line-head">
-            <span>Item</span><span>Qty</span><span>Rate</span><span>Amount</span>
+            <span>{t('rc_item')}</span><span>{t('rc_qty')}</span><span>{t('rc_rate')}</span><span>{t('rc_amount')}</span>
           </div>
           {bill.items.map((it) => (
             <div key={it.id || it.product_name} className="receipt-line">
@@ -66,27 +68,27 @@ export default function BillReceipt({ bill, onClose, showProfit = true }) {
             </div>
           ))}
           <div className="receipt-line receipt-line-total">
-            <span>Total</span><span /><span /><span>{inr(bill.total)}</span>
+            <span>{t('rc_total')}</span><span /><span /><span>{inr(bill.total)}</span>
           </div>
         </div>
 
         <div className="receipt-foot">
-          <span>Payment: <b>{(bill.payment_mode || 'cash').toUpperCase()}</b></span>
-          <span>{bill.items.length} item{bill.items.length !== 1 ? 's' : ''}</span>
+          <span>{t('rc_payment')}: <b>{(bill.payment_mode || 'cash').toUpperCase()}</b></span>
+          <span>{t('rc_items', { n: bill.items.length })}</span>
         </div>
-        <div className="receipt-thanks">Thank you for your business 🙏</div>
+        <div className="receipt-thanks">{t('rc_thanks')}</div>
 
         {showProfit && (
           <div className="receipt-profit no-print">
-            Your profit on this bill: <b>{inr(bill.profit)}</b> · internal, not printed
+            {t('rc_profit_line', { profit: inr(bill.profit) })}
           </div>
         )}
       </div>
 
       <div className="receipt-actions no-print">
-        <button className="action-btn outlined" onClick={() => window.print()}>🖨 Print / PDF</button>
-        <button className="action-btn outlined" onClick={shareWhatsApp}>💬 WhatsApp</button>
-        {onClose && <button className="btn-confirm receipt-done" onClick={onClose}>Done</button>}
+        <button className="action-btn outlined" onClick={() => window.print()}>{t('rc_print')}</button>
+        <button className="action-btn outlined" onClick={shareWhatsApp}>{t('rc_whatsapp')}</button>
+        {onClose && <button className="btn-confirm receipt-done" onClick={onClose}>{t('done')}</button>}
       </div>
     </div>
   );

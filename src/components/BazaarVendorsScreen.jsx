@@ -4,18 +4,20 @@ import Modal from './Modal';
 import { useData } from '../context/DataContext';
 import { useNav } from '../context/NavContext';
 import { useToast } from '../context/ToastContext';
+import { useLang } from '../context/LangContext';
 import { inr, lineValue } from '../lib/format';
 
 const FREQ = [
-  { value: 'weekly', label: 'Weekly', cls: 'weekly' },
-  { value: 'major', label: 'Major', cls: 'major' },
-  { value: 'new', label: 'New', cls: 'new' },
+  { value: 'weekly', tkey: 'ven_freq_weekly', cls: 'weekly' },
+  { value: 'major', tkey: 'ven_freq_major', cls: 'major' },
+  { value: 'new', tkey: 'ven_freq_new', cls: 'new' },
 ];
 
 export default function BazaarVendorsScreen() {
   const { vendors, bazaars, loading, addVendor } = useData();
   const { navigate } = useNav();
   const { notify } = useToast();
+  const { t } = useLang();
   const [adding, setAdding] = useState(false);
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -42,39 +44,39 @@ export default function BazaarVendorsScreen() {
 
   return (
     <>
-      <AppHeader title="Bazaar Vendors" subtitle="Settlements" hindiLabel="हिंदी" />
+      <AppHeader title={t('ven_title')} subtitle={t('ven_sub')} />
 
       <div className="screen-content">
         <div className="vendors-screen">
 
           <div className="settlement-banner">
             <div>
-              <div className="settlement-label">Total Settlement Due</div>
+              <div className="settlement-label">{t('ven_settlement_due')}</div>
               <div className="settlement-amount">{inr(totalPending)}</div>
               <div className="settlement-sub">
-                <span>ⓘ</span> Across {activeVendorIds.size} active bazaar{activeVendorIds.size !== 1 ? 's' : ''}
+                <span>ⓘ</span> {t('ven_across_active', { n: activeVendorIds.size })}
               </div>
             </div>
             <div style={{ fontSize: 56, opacity: 0.15, position: 'absolute', right: 16 }}>🤝</div>
           </div>
 
           <button id="btn-add-vendor" className="btn-add-vendor" onClick={() => setAdding(true)}>
-            👤+ Add New Vendor
+            {t('ven_add_new')}
           </button>
 
           {showSearch && (
             <div className="inv-search-wrap">
               <span className="inv-search-icon">🔍</span>
-              <input className="inv-search-input" placeholder="Search vendors…" value={search}
+              <input className="inv-search-input" placeholder={t('ven_search_ph')} value={search}
                      onChange={(e) => setSearch(e.target.value)} autoFocus />
             </div>
           )}
 
-          <div className="vendor-list-title">Active Bazaar Vendors</div>
+          <div className="vendor-list-title">{t('ven_active_list')}</div>
 
-          {loading && <div className="empty-hint">Loading vendors…</div>}
+          {loading && <div className="empty-hint">{t('ven_loading')}</div>}
           {!loading && filtered.length === 0 && (
-            <div className="empty-hint">No vendors yet. Tap <b>Add New Vendor</b> to create one.</div>
+            <div className="empty-hint">{t('ven_empty')}</div>
           )}
 
           <div className="vendor-list">
@@ -89,11 +91,11 @@ export default function BazaarVendorsScreen() {
                       <div className="vendor-phone">📞 {v.phone || '—'}</div>
                     </div>
                     <span className={`freq-badge ${freqCls(v.frequency)}`}>
-                      {FREQ.find((x) => x.value === v.frequency)?.label || 'New'}
+                      {t(FREQ.find((x) => x.value === v.frequency)?.tkey || 'ven_freq_new')}
                     </span>
                   </div>
                   <div className="vendor-card-bottom">
-                    <span className="pending-label">Pending Settlement</span>
+                    <span className="pending-label">{t('ven_pending')}</span>
                     <span className={`pending-amount ${pending === 0 ? 'zero' : ''}`}>{inr(pending)}</span>
                   </div>
                 </div>
@@ -112,10 +114,10 @@ export default function BazaarVendorsScreen() {
           onSave={async (form) => {
             try {
               await addVendor({ name: form.name, phone: form.phone, frequency: form.frequency });
-              notify('Vendor added');
+              notify(t('ven_added'));
               setAdding(false);
             } catch (e) {
-              notify(e.message || 'Could not add vendor', 'error');
+              notify(e.message || t('ven_add_failed'), 'error');
             }
           }}
         />
@@ -125,36 +127,37 @@ export default function BazaarVendorsScreen() {
 }
 
 function VendorFormModal({ onClose, onSave }) {
+  const { t } = useLang();
   const [form, setForm] = useState({ name: '', phone: '', frequency: 'weekly' });
   const [busy, setBusy] = useState(false);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   return (
     <Modal
-      title="Add New Vendor"
+      title={t('vf_title')}
       onClose={onClose}
       footer={
         <button className="btn-confirm" disabled={busy || !form.name.trim()}
                 onClick={async () => { setBusy(true); await onSave(form); setBusy(false); }}>
-          {busy ? 'Saving…' : '✓ Add Vendor'}
+          {busy ? t('saving') : t('vf_add')}
         </button>
       }
     >
       <div className="form-group">
-        <div className="form-label">Vendor / Bazaar Name *</div>
+        <div className="form-label">{t('vf_name')}</div>
         <input className="form-input" style={{ padding: '0 14px' }} value={form.name} autoFocus
-               onChange={(e) => set('name', e.target.value)} placeholder="Wednesday Bazaar" />
+               onChange={(e) => set('name', e.target.value)} placeholder={t('vf_name_ph')} />
       </div>
       <div className="form-group">
-        <div className="form-label">Phone</div>
+        <div className="form-label">{t('vf_phone')}</div>
         <input className="form-input" style={{ padding: '0 14px' }} value={form.phone}
-               onChange={(e) => set('phone', e.target.value)} placeholder="+91 98765 43210" />
+               onChange={(e) => set('phone', e.target.value)} placeholder={t('vf_phone_ph')} />
       </div>
       <div className="form-group">
-        <div className="form-label">Frequency</div>
+        <div className="form-label">{t('vf_frequency')}</div>
         <div className="form-select-wrap">
           <select className="form-select" value={form.frequency} onChange={(e) => set('frequency', e.target.value)}>
-            {FREQ.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+            {FREQ.map((f) => <option key={f.value} value={f.value}>{t(f.tkey)}</option>)}
           </select>
           <span className="form-select-arrow">▾</span>
         </div>
